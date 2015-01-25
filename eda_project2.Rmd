@@ -1,0 +1,57 @@
+---
+title: "eda_project2"
+output: html_document
+---
+```{r}
+setwd("/Users/alexey/Documents/ExData_PeerAssessment2")
+
+NEI <- readRDS("exdata-data-NEI_data/summarySCC_PM25.rds")
+SCC <- readRDS("exdata-data-NEI_data/Source_Classification_Code.rds")
+NEI_Baltimore <- NEI[NEI$fips=="24510",]
+NEI_LosAngelos <- NEI[NEI$fips=="06037",]
+NEI_Total_Emission <- with(NEI, tapply(Emissions, year, sum))
+
+##1
+plot(y = NEI_Total_Emission, x = names(NEI_Total_Emission), xlab = "Years", 
+      ylab = "Total PM2.5 emission", pch=17, type="o")
+
+##2
+NEI_Total_Emission_Baltimor <- with(NEI_Baltimore, tapply(Emissions, year, sum))
+plot(y = NEI_Total_Emission_Baltimor, x = names(NEI_Total_Emission_Baltimor), 
+     ylab = "Baltimor PM2.5 emission", xlab = "Years", pch=17, type="o")
+
+##3
+library(ggplot2)
+baltimoreAggregate <- aggregate(Emissions ~ year + type, NEI_Baltimore, sum)
+baltimoreAggregate <- transform(baltimoreAggregate, type = factor(type))
+gg <- ggplot(baltimoreAggregate, aes(year, Emissions))
+gg <- gg + geom_point(color = "red", size=3) + geom_line(col="blue", linetype="dashed") 
+gg + facet_wrap(~ type)
+
+##4
+f <- factor(SCC$SCC[grep("Coal", SCC$EI.Sector)])
+NEI_US_FILTERED <- NEI[NEI$SCC %in% f, ]
+usAggregate <- aggregate(Emissions ~ year, NEI_US_FILTERED, sum)
+gg <- ggplot(usAggregate, aes(year, Emissions))
+gg + geom_point(color = "red", size=3) + geom_line(col="blue", linetype="dashed") 
+
+##5 Motor Vehicls
+
+f <- factor(SCC$SCC[grep("Vehicle", SCC$SCC.Level.Two)])
+NEI_Baltimore_Filtered <- NEI_Baltimore[NEI_Baltimore$SCC %in% f, ]
+baltimoreAggregate <- aggregate(Emissions ~ year, NEI_Baltimore_Filtered, sum)
+gg <- ggplot(baltimoreAggregate, aes(year, Emissions))
+gg + geom_point(color = "red", size=3) + geom_line(col="blue", linetype="dashed") 
+
+##6
+NEI_LosAngelos_Filtered <- NEI_LosAngelos[NEI_LosAngelos$SCC %in% f, ]
+NEI_Baltimore_Filtered$Place  <- "Baltimor"
+NEI_LosAngelos_Filtered$Place <- "LosAngelos"
+NEI_Both <- rbind(NEI_LosAngelos_Filtered, NEI_Baltimore_Filtered)
+aggr <- aggregate(Emissions ~ year + Place, NEI_Both, sum)
+aggr[aggr$Place=="LosAngelos",]$Emissions <-scale(aggr[aggr$Place=="LosAngelos",]$Emissions, center = 1)
+aggr[aggr$Place=="Baltimor",]$Emissions <-scale(aggr[aggr$Place=="Baltimor",]$Emissions, center = 1)
+gg <- ggplot(aggr, aes(year, Emissions))
+gg <- gg + geom_point(color = "red", size=3) + geom_line(col="blue", linetype="dashed") 
+gg + facet_grid(.~ Place)
+```
